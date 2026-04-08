@@ -1,0 +1,5 @@
+/* NavMenu uses Bootstrap classes - minimal overrides needed */
+.nav-link.active {
+    font-weight: 600;
+    text-decoration: underline;
+}

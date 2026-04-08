@@ -1,0 +1,118 @@
+@page "/tasks/add"
+@attribute [Authorize]
+@inject TaskService TaskService
+@inject UserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Nova Tarefa - ICAD</PageTitle>
+
+<div class="container py-4" style="max-width: 700px;">
+    <div class="d-flex align-items-center mb-4 gap-3">
+        <a href="/tasks" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-plus-circle text-primary me-2"></i>Adicionar Nova Tarefa
+        </h2>
+    </div>
+
+    @if (_errorMessage is not null)
+    {
+        <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>@_errorMessage</div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <EditForm Model="_model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Título <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="_model.Titulo" placeholder="Título da tarefa" />
+                    <ValidationMessage For="() => _model.Titulo" class="text-danger small" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Descrição</label>
+                    <InputTextArea class="form-control" @bind-Value="_model.Descricao" rows="4" placeholder="Descreva a tarefa..." />
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Data de Entrega <span class="text-danger">*</span></label>
+                        <InputDate class="form-control" @bind-Value="_model.DataEntrega" />
+                        <ValidationMessage For="() => _model.DataEntrega" class="text-danger small" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Dificuldade <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="_model.Dificuldade">
+                            <option value="">Selecione...</option>
+                            <option value="Fácil">Fácil</option>
+                            <option value="Médio">Médio</option>
+                            <option value="Difícil">Difícil</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => _model.Dificuldade" class="text-danger small" />
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Responsável <span class="text-danger">*</span></label>
+                    @if (_users.Count == 0)
+                    {
+                        <div class="text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Carregando usuários...</div>
+                    }
+                    else
+                    {
+                        <InputSelect class="form-select" @bind-Value="_model.ResponsavelId">
+                            <option value="0">Selecione um responsável...</option>
+                            @foreach (var user in _users)
+                            {
+                                <option value="@user.Id">@user.Name (@user.Username)</option>
+                            }
+                        </InputSelect>
+                    }
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@_loading">
+                        @if (_loading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-check-circle me-1"></i>Salvar Tarefa
+                    </button>
+                    <a href="/tasks" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateTaskDto _model = new();
+    private List<UserDto> _users = [];
+    private string? _errorMessage;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await UserService.GetAllAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_model.ResponsavelId == 0) { _errorMessage = "Selecione um responsável."; return; }
+        if (string.IsNullOrWhiteSpace(_model.Dificuldade)) { _errorMessage = "Selecione a dificuldade."; return; }
+
+        _loading = true;
+        _errorMessage = null;
+
+        var success = await TaskService.CreateAsync(_model);
+        if (success)
+            Navigation.NavigateTo("/tasks");
+        else
+            _errorMessage = "Erro ao criar tarefa. Verifique os dados e tente novamente.";
+
+        _loading = false;
+    }
+}

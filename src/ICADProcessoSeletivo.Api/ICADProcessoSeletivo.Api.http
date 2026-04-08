@@ -1,0 +1,6 @@
+@ICADProcessoSeletivo.Api_HostAddress = http://localhost:5159
+
+GET {{ICADProcessoSeletivo.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

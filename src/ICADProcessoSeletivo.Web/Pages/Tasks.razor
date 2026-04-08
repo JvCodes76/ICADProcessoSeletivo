@@ -1,0 +1,218 @@
+@page "/tasks"
+@page "/"
+@attribute [Authorize]
+@inject TaskService TaskService
+@inject NavigationManager Navigation
+
+<PageTitle>Lista de Tarefas - ICAD</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-list-task text-primary me-2"></i>Lista de Tarefas
+        </h2>
+        <a href="/tasks/add" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Nova Tarefa
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" class="form-control border-start-0" placeholder="Pesquisar tarefas por título..."
+                       @bind="_searchTerm" @bind:event="oninput" @onkeyup="HandleSearch" />
+                @if (!string.IsNullOrEmpty(_searchTerm))
+                {
+                    <button class="btn btn-outline-secondary" @onclick="ClearSearch">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Carregando tarefas...</p>
+        </div>
+    }
+    else if (_tasks.Count == 0)
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+            <p class="mt-2">Nenhuma tarefa encontrada.</p>
+        </div>
+    }
+    else
+    {
+        <div class="accordion" id="tasksAccordion">
+            @foreach (var (task, index) in _tasks.Select((t, i) => (t, i)))
+            {
+                var collapseId = $"collapse-{task.Id}";
+                var headingId = $"heading-{task.Id}";
+
+                <div class="accordion-item shadow-sm mb-2 border rounded">
+                    <div class="accordion-header d-flex align-items-center px-3" id="@headingId">
+                        <input type="checkbox" class="form-check-input me-3 flex-shrink-0"
+                               checked="@task.Concluida"
+                               @onchange="@(e => ToggleConcluida(task, (bool)e.Value!))"
+                               title="Marcar como concluída" />
+
+                        <button class="accordion-button @(index == 0 ? "" : "collapsed") flex-grow-1 bg-transparent border-0 text-start py-3"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#@collapseId"
+                                aria-expanded="@(index == 0 ? "true" : "false")"
+                                aria-controls="@collapseId">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold @(task.Concluida ? "text-decoration-line-through text-muted" : "")">
+                                    @task.Titulo
+                                </span>
+                                <span class="badge @GetDificuldadeBadgeClass(task.Dificuldade) ms-1">
+                                    @task.Dificuldade
+                                </span>
+                                @if (task.Concluida)
+                                {
+                                    <span class="badge bg-success">Concluída</span>
+                                }
+                                else if (task.DataEntrega < DateTime.Today)
+                                {
+                                    <span class="badge bg-danger">Atrasada</span>
+                                }
+                            </div>
+                        </button>
+                    </div>
+
+                    <div id="@collapseId" class="accordion-collapse collapse @(index == 0 ? "show" : "")"
+                         aria-labelledby="@headingId" data-bs-parent="#tasksAccordion">
+                        <div class="accordion-body pt-0">
+                            <hr class="mt-0" />
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <p class="mb-2"><strong><i class="bi bi-text-paragraph me-1 text-muted"></i>Descrição:</strong></p>
+                                    <p class="text-muted ps-2">@task.Descricao</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-2">
+                                        <small class="text-muted"><i class="bi bi-person me-1"></i>Responsável</small>
+                                        <p class="mb-0 fw-semibold">@task.ResponsavelNome</p>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>Data de Entrega</small>
+                                        <p class="mb-0 @(task.DataEntrega < DateTime.Today && !task.Concluida ? "text-danger fw-semibold" : "")">
+                                            @task.DataEntrega.ToString("dd/MM/yyyy")
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted"><i class="bi bi-speedometer2 me-1"></i>Dificuldade</small>
+                                        <p class="mb-0">
+                                            <span class="badge @GetDificuldadeBadgeClass(task.Dificuldade)">@task.Dificuldade</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-3">
+                                <a href="/tasks/edit/@task.Id" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-pencil me-1"></i>Editar
+                                </a>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="@(() => ConfirmDelete(task))">
+                                    <i class="bi bi-trash me-1"></i>Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (_taskToDelete is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    Deseja realmente excluir a tarefa <strong>"@_taskToDelete.Titulo"</strong>? Esta ação não pode ser desfeita.
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CancelDelete">Cancelar</button>
+                    <button class="btn btn-danger" @onclick="DeleteTask">
+                        <i class="bi bi-trash me-1"></i>Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<TaskDto> _tasks = [];
+    private bool _loading = true;
+    private string _searchTerm = string.Empty;
+    private TaskDto? _taskToDelete;
+    private System.Timers.Timer? _debounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTasks();
+    }
+
+    private async Task LoadTasks()
+    {
+        _loading = true;
+        _tasks = await TaskService.GetAllAsync(_searchTerm);
+        _loading = false;
+    }
+
+    private void HandleSearch(KeyboardEventArgs e)
+    {
+        _debounceTimer?.Dispose();
+        _debounceTimer = new System.Timers.Timer(400);
+        _debounceTimer.Elapsed += async (_, _) =>
+        {
+            _debounceTimer.Dispose();
+            await InvokeAsync(LoadTasks);
+        };
+        _debounceTimer.AutoReset = false;
+        _debounceTimer.Start();
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        await LoadTasks();
+    }
+
+    private async Task ToggleConcluida(TaskDto task, bool value)
+    {
+        task.Concluida = value;
+        await TaskService.ToggleConcluidaAsync(task.Id, value);
+    }
+
+    private void ConfirmDelete(TaskDto task) => _taskToDelete = task;
+    private void CancelDelete() => _taskToDelete = null;
+
+    private async Task DeleteTask()
+    {
+        if (_taskToDelete is null) return;
+        await TaskService.DeleteAsync(_taskToDelete.Id);
+        _taskToDelete = null;
+        await LoadTasks();
+    }
+
+    private static string GetDificuldadeBadgeClass(string dificuldade) => dificuldade switch
+    {
+        "Fácil" => "bg-success",
+        "Médio" => "bg-warning text-dark",
+        "Difícil" => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

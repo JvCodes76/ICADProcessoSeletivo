@@ -1,0 +1,43 @@
+html, body {
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+    font-size: 0.85rem;
+}
+
+#blazor-error-ui {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    display: none;
+}
+
+.accordion-button:not(.collapsed) {
+    color: #0d6efd;
+    background-color: #f0f6ff;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+}
+
+.accordion-item {
+    overflow: hidden;
+}
