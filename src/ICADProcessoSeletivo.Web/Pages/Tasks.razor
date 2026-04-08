@@ -1,5 +1,4 @@
 @page "/tasks"
-@page "/"
 @attribute [Authorize]
 @inject TaskService TaskService
 @inject NavigationManager Navigation
@@ -158,7 +157,7 @@
     private bool _loading = true;
     private string _searchTerm = string.Empty;
     private TaskDto? _taskToDelete;
-    private System.Timers.Timer? _debounceTimer;
+    private CancellationTokenSource? _searchCts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -172,17 +171,17 @@
         _loading = false;
     }
 
-    private void HandleSearch(KeyboardEventArgs e)
+    private async Task HandleSearch(KeyboardEventArgs e)
     {
-        _debounceTimer?.Dispose();
-        _debounceTimer = new System.Timers.Timer(400);
-        _debounceTimer.Elapsed += async (_, _) =>
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+        try
         {
-            _debounceTimer.Dispose();
-            await InvokeAsync(LoadTasks);
-        };
-        _debounceTimer.AutoReset = false;
-        _debounceTimer.Start();
+            await Task.Delay(400, token);
+            await LoadTasks();
+        }
+        catch (TaskCanceledException) { }
     }
 
     private async Task ClearSearch()

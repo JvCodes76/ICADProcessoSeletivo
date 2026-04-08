@@ -22,7 +22,7 @@ public class TasksController : ControllerBase
         var query = _db.Tasks.Include(t => t.Responsavel).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(t => t.Titulo.Contains(search));
+            query = query.Where(t => t.Titulo.ToLower().Contains(search.ToLower()));
 
         var tasks = await query
             .OrderBy(t => t.DataEntrega)

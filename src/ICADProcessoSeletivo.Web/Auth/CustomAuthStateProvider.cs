@@ -20,14 +20,21 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        var token = await _js.InvokeAsync<string?>("localStorage.getItem", "authToken");
-        if (string.IsNullOrWhiteSpace(token))
-            return _anonymous;
+        try
+        {
+            var token = await _js.InvokeAsync<string?>("localStorage.getItem", "authToken");
+            if (string.IsNullOrWhiteSpace(token))
+                return _anonymous;
 
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var claims = ParseClaimsFromJwt(token);
-        var identity = new ClaimsIdentity(claims, "jwt");
-        return new AuthenticationState(new ClaimsPrincipal(identity));
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var claims = ParseClaimsFromJwt(token);
+            var identity = new ClaimsIdentity(claims, "jwt");
+            return new AuthenticationState(new ClaimsPrincipal(identity));
+        }
+        catch
+        {
+            return _anonymous;
+        }
     }
 
     public async Task MarkUserAsAuthenticated(string token)
