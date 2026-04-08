@@ -58,7 +58,11 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         var payload = jwt.Split('.')[1];
         var jsonBytes = ParseBase64WithoutPadding(payload);
         var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonBytes);
-        return keyValuePairs?.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString())) ?? [];
+        return keyValuePairs?.Select(kvp =>
+        {
+            var type = kvp.Key == "role" ? ClaimTypes.Role : kvp.Key;
+            return new Claim(type, kvp.Value.ToString());
+        }) ?? [];
     }
 
     private static byte[] ParseBase64WithoutPadding(string base64)

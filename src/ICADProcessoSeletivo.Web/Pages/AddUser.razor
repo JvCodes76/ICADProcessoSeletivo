@@ -1,0 +1,87 @@
+@page "/users/add"
+@attribute [Authorize(Roles = "admin")]
+@inject UserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Adicionar Pessoa - ICAD</PageTitle>
+
+<div class="container py-4" style="max-width: 600px;">
+    <div class="d-flex align-items-center mb-4 gap-3">
+        <a href="/users" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-person-plus text-primary me-2"></i>Adicionar Pessoa
+        </h2>
+    </div>
+
+    @if (_errorMessage is not null)
+    {
+        <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>@_errorMessage</div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <EditForm Model="_model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="_model.Name" placeholder="Nome completo" />
+                    <ValidationMessage For="() => _model.Name" class="text-danger small" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Usuário <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="_model.Username" placeholder="login de acesso" />
+                    <ValidationMessage For="() => _model.Username" class="text-danger small" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Senha <span class="text-danger">*</span></label>
+                    <InputText type="password" class="form-control" @bind-Value="_model.Password" placeholder="Mínimo 6 caracteres" />
+                    <ValidationMessage For="() => _model.Password" class="text-danger small" />
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@_saving">
+                        @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Salvar
+                    </button>
+                    <a href="/users" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AddUserModel _model = new();
+    private bool _saving;
+    private string? _errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        _saving = true;
+        _errorMessage = null;
+        var (success, error) = await UserService.CreateAsync(new CreateUserDto(_model.Username, _model.Name, _model.Password));
+        _saving = false;
+        if (success)
+            Navigation.NavigateTo("/users");
+        else
+            _errorMessage = error ?? "Erro ao criar usuário.";
+    }
+
+    private class AddUserModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Nome é obrigatório.")]
+        public string Name { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Usuário é obrigatório.")]
+        public string Username { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Senha é obrigatória.")]
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "Mínimo 6 caracteres.")]
+        public string Password { get; set; } = "";
+    }
+}

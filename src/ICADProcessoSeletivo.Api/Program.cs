@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -30,10 +30,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod());
 });
 
 var app = builder.Build();
@@ -49,13 +50,22 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 
+    // Garante que o admin sempre tem IsAdmin = true, mesmo em bancos já populados
+    var existingAdmin = db.Users.FirstOrDefault(u => u.Username == "admin");
+    if (existingAdmin != null && !existingAdmin.IsAdmin)
+    {
+        existingAdmin.IsAdmin = true;
+        db.SaveChanges();
+    }
+
     if (!db.Users.Any())
     {
         var admin = new User
         {
             Username = "admin",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@ICAD!"),
-            Name = "Administrador"
+            Name = "Administrador",
+            IsAdmin = true
         };
         db.Users.Add(admin);
 

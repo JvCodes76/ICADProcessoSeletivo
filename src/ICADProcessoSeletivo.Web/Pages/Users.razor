@@ -1,0 +1,139 @@
+@page "/users"
+@attribute [Authorize(Roles = "admin")]
+@inject UserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Equipe - ICAD</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-people text-primary me-2"></i>Equipe
+        </h2>
+        <a href="/users/add" class="btn btn-primary">
+            <i class="bi bi-person-plus me-1"></i>Adicionar Pessoa
+        </a>
+    </div>
+
+    @if (_errorMessage is not null)
+    {
+        <div class="alert alert-danger alert-dismissible mb-4">
+            <i class="bi bi-exclamation-triangle me-2"></i>@_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Carregando...</p>
+        </div>
+    }
+    else if (_users.Count == 0)
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-people" style="font-size: 3rem;"></i>
+            <p class="mt-2">Nenhum membro na equipe.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Nome</th>
+                            <th>Usuário</th>
+                            <th class="text-end pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in _users)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-semibold">
+                                    <i class="bi bi-person-circle text-secondary me-2"></i>@user.Name
+                                </td>
+                                <td class="text-muted">@user.Username</td>
+                                <td class="text-end pe-4">
+                                    <a href="/users/edit/@user.Id" class="btn btn-outline-primary btn-sm me-1">
+                                        <i class="bi bi-pencil me-1"></i>Editar
+                                    </a>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDelete(user)">
+                                        <i class="bi bi-trash me-1"></i>Excluir
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_userToDelete is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar exclusão</h5>
+                    <button class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    Deseja excluir <strong>@_userToDelete.Name</strong>? Esta ação não pode ser desfeita.
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CancelDelete">Cancelar</button>
+                    <button class="btn btn-danger" @onclick="ExecuteDelete" disabled="@_deleting">
+                        @if (_deleting) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserDto> _users = [];
+    private bool _loading = true;
+    private string? _errorMessage;
+    private UserDto? _userToDelete;
+    private bool _deleting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await UserService.GetAllAsync();
+        _loading = false;
+    }
+
+    private void ConfirmDelete(UserDto user)
+    {
+        _userToDelete = user;
+        _errorMessage = null;
+    }
+
+    private void CancelDelete() => _userToDelete = null;
+
+    private async Task ExecuteDelete()
+    {
+        if (_userToDelete is null) return;
+        _deleting = true;
+        var (success, error) = await UserService.DeleteAsync(_userToDelete.Id);
+        _deleting = false;
+        if (success)
+        {
+            _users.Remove(_userToDelete);
+            _userToDelete = null;
+        }
+        else
+        {
+            _errorMessage = error ?? "Erro ao excluir usuário.";
+            _userToDelete = null;
+        }
+    }
+}

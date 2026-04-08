@@ -29,11 +29,11 @@ public class AuthController : ControllerBase
         if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return Unauthorized(new { message = "Usuário ou senha inválidos." });
 
-        var token = GenerateToken(user.Id, user.Username, user.Name);
+        var token = GenerateToken(user.Id, user.Username, user.Name, user.IsAdmin);
         return Ok(new LoginResponseDto(token, user.Username, user.Name));
     }
 
-    private string GenerateToken(int id, string username, string name)
+    private string GenerateToken(int id, string username, string name, bool isAdmin)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -43,7 +43,8 @@ public class AuthController : ControllerBase
             new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
             new Claim(JwtRegisteredClaimNames.UniqueName, username),
             new Claim("name", name),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("role", isAdmin ? "admin" : "user")
         };
 
         var token = new JwtSecurityToken(

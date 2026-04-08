@@ -1,0 +1,116 @@
+@page "/users/edit/{Id:int}"
+@attribute [Authorize(Roles = "admin")]
+@inject UserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Editar Pessoa - ICAD</PageTitle>
+
+<div class="container py-4" style="max-width: 600px;">
+    <div class="d-flex align-items-center mb-4 gap-3">
+        <a href="/users" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-pencil text-primary me-2"></i>Editar Pessoa
+        </h2>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (_notFound)
+    {
+        <div class="alert alert-warning">Usuário não encontrado.</div>
+    }
+    else
+    {
+        @if (_errorMessage is not null)
+        {
+            <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>@_errorMessage</div>
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted">Usuário</label>
+                    <input class="form-control" value="@_username" disabled />
+                    <div class="form-text">O nome de usuário não pode ser alterado.</div>
+                </div>
+
+                <EditForm Model="_model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
+                        <InputText class="form-control" @bind-Value="_model.Name" />
+                        <ValidationMessage For="() => _model.Name" class="text-danger small" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Nova Senha</label>
+                        <InputText type="password" class="form-control" @bind-Value="_model.Password" placeholder="Deixe em branco para manter a atual" />
+                        <ValidationMessage For="() => _model.Password" class="text-danger small" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@_saving">
+                            @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                            Salvar
+                        </button>
+                        <a href="/users" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private EditUserModel _model = new();
+    private string _username = "";
+    private bool _loading = true;
+    private bool _notFound;
+    private bool _saving;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserService.GetByIdAsync(Id);
+        if (user is null)
+        {
+            _notFound = true;
+        }
+        else
+        {
+            _username = user.Username;
+            _model.Name = user.Name;
+        }
+        _loading = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        _saving = true;
+        _errorMessage = null;
+        var (success, error) = await UserService.UpdateAsync(Id, new UpdateUserDto(_model.Name, string.IsNullOrWhiteSpace(_model.Password) ? null : _model.Password));
+        _saving = false;
+        if (success)
+            Navigation.NavigateTo("/users");
+        else
+            _errorMessage = error ?? "Erro ao salvar alterações.";
+    }
+
+    private class EditUserModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Nome é obrigatório.")]
+        public string Name { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "Mínimo 6 caracteres.")]
+        public string? Password { get; set; }
+    }
+}
