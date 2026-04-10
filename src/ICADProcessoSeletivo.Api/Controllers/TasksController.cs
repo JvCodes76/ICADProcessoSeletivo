@@ -12,6 +12,8 @@ namespace ICADProcessoSeletivo.Api.Controllers;
 [Authorize]
 public class TasksController : ControllerBase
 {
+    private static readonly string[] ValidStatuses = ["Backlog", "SprintBacklog", "Doing", "Revision", "Done"];
+
     private readonly AppDbContext _db;
 
     public TasksController(AppDbContext db) => _db = db;
@@ -35,7 +37,7 @@ public class TasksController : ControllerBase
                 ResponsavelId = t.ResponsavelId,
                 ResponsavelNome = t.Responsavel.Name,
                 Dificuldade = t.Dificuldade,
-                Concluida = t.Concluida
+                Status = t.Status
             })
             .ToListAsync();
 
@@ -57,7 +59,7 @@ public class TasksController : ControllerBase
                 ResponsavelId = t.ResponsavelId,
                 ResponsavelNome = t.Responsavel.Name,
                 Dificuldade = t.Dificuldade,
-                Concluida = t.Concluida
+                Status = t.Status
             })
             .FirstOrDefaultAsync();
 
@@ -78,7 +80,7 @@ public class TasksController : ControllerBase
             DataEntrega = dto.DataEntrega,
             ResponsavelId = dto.ResponsavelId,
             Dificuldade = dto.Dificuldade,
-            Concluida = false
+            Status = "Backlog"
         };
 
         _db.Tasks.Add(task);
@@ -95,24 +97,30 @@ public class TasksController : ControllerBase
         var user = await _db.Users.FindAsync(dto.ResponsavelId);
         if (user is null) return BadRequest(new { message = "Responsável não encontrado." });
 
+        if (!ValidStatuses.Contains(dto.Status))
+            return BadRequest(new { message = "Status inválido." });
+
         task.Titulo = dto.Titulo;
         task.Descricao = dto.Descricao;
         task.DataEntrega = dto.DataEntrega;
         task.ResponsavelId = dto.ResponsavelId;
         task.Dificuldade = dto.Dificuldade;
-        task.Concluida = dto.Concluida;
+        task.Status = dto.Status;
 
         await _db.SaveChangesAsync();
         return NoContent();
     }
 
-    [HttpPatch("{id}/concluida")]
-    public async Task<IActionResult> ToggleConcluida(int id, [FromBody] bool concluida)
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
     {
+        if (!ValidStatuses.Contains(dto.Status))
+            return BadRequest(new { message = "Status inválido." });
+
         var task = await _db.Tasks.FindAsync(id);
         if (task is null) return NotFound();
 
-        task.Concluida = concluida;
+        task.Status = dto.Status;
         await _db.SaveChangesAsync();
         return NoContent();
     }

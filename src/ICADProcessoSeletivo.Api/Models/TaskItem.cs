@@ -9,5 +9,5 @@ public class TaskItem
     public int ResponsavelId { get; set; }
     public User Responsavel { get; set; } = null!;
     public string Dificuldade { get; set; } = string.Empty;
-    public bool Concluida { get; set; } = false;
+    public string Status { get; set; } = "Backlog";
 }

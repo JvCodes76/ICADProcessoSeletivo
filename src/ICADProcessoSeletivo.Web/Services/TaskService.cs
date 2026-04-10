@@ -33,9 +33,9 @@ public class TaskService
         return response.IsSuccessStatusCode;
     }
 
-    public async Task<bool> ToggleConcluidaAsync(int id, bool concluida)
+    public async Task<bool> UpdateStatusAsync(int id, string status)
     {
-        var response = await _http.PatchAsJsonAsync($"api/tasks/{id}/concluida", concluida);
+        var response = await _http.PatchAsJsonAsync($"api/tasks/{id}/status", new { Status = status });
         return response.IsSuccessStatusCode;
     }
 

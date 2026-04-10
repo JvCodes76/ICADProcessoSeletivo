@@ -90,7 +90,7 @@ using (var scope = app.Services.CreateScope())
                 DataEntrega = DateTime.Now.AddDays(3),
                 ResponsavelId = adminId,
                 Dificuldade = "Fácil",
-                Concluida = true
+                Status = "Done"
             },
             new TaskItem
             {
@@ -99,16 +99,25 @@ using (var scope = app.Services.CreateScope())
                 DataEntrega = DateTime.Now.AddDays(7),
                 ResponsavelId = devId,
                 Dificuldade = "Médio",
-                Concluida = false
+                Status = "Doing"
             },
             new TaskItem
             {
-                Titulo = "Desenvolver tela de listagem de tarefas",
-                Descricao = "Criar a página Blazor com accordion Bootstrap mostrando detalhes de cada tarefa.",
+                Titulo = "Desenvolver board Kanban",
+                Descricao = "Criar a página Blazor com colunas Kanban e suporte a drag and drop.",
                 DataEntrega = DateTime.Now.AddDays(10),
                 ResponsavelId = devId,
                 Dificuldade = "Difícil",
-                Concluida = false
+                Status = "Backlog"
+            },
+            new TaskItem
+            {
+                Titulo = "Revisar pull request de autenticação",
+                Descricao = "Checar o código do JWT, validar tokens e revisar os testes.",
+                DataEntrega = DateTime.Now.AddDays(5),
+                ResponsavelId = adminId,
+                Dificuldade = "Médio",
+                Status = "Revision"
             }
         );
         db.SaveChanges();

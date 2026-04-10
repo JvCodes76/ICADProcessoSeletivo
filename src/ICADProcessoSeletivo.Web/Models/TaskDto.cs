@@ -9,7 +9,7 @@ public class TaskDto
     public int ResponsavelId { get; set; }
     public string ResponsavelNome { get; set; } = string.Empty;
     public string Dificuldade { get; set; } = string.Empty;
-    public bool Concluida { get; set; }
+    public string Status { get; set; } = "Backlog";
 }
 
 public class CreateTaskDto
@@ -28,5 +28,5 @@ public class UpdateTaskDto
     public DateTime DataEntrega { get; set; }
     public int ResponsavelId { get; set; }
     public string Dificuldade { get; set; } = string.Empty;
-    public bool Concluida { get; set; }
+    public string Status { get; set; } = "Backlog";
 }
